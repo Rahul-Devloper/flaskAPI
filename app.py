@@ -30,11 +30,59 @@ class Employee(db.Model):
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-        # Example: add a test employee (optional)
-        emp = Employee(first_name="John", last_name="Doe",
-                       gender="Male", salary=60000)
-        db.session.add(emp)
+        # Add multiple employees
+        emp1 = Employee(first_name="John", last_name="Doe",
+                        gender="Male", salary=60000)
+        emp2 = Employee(first_name="Jane", last_name="Smith",
+                        gender="Female", salary=65000)
+        emp3 = Employee(first_name="Alice", last_name="Brown",
+                        gender="Female", salary=70000)
+        db.session.add_all([emp1, emp2, emp3])
         db.session.commit()
-    print("Database tables created.")
+    print("Database tables created and employees added.")
     # Optionally, start the Flask app
     # app.run(debug=True)
+
+
+# create a resource for the API
+class GetEmployee(Resource):
+    def get(self):
+        employees = Employee.query.all()
+        emp_list = []
+        for emp in employees:
+            emp_data = {
+                "id": emp.id,
+                "first_name": emp.first_name,
+                "last_name": emp.last_name,
+                "gender": emp.gender,
+                "salary": emp.salary
+
+            }
+            emp_list.append(emp_data)
+            return {"employees": emp_list}, 200
+
+# add the resource to the API through POST request
+
+
+class AddEmployee(Resource):
+    def post(self):
+        if request.is_json:
+            emp = Employee(
+                first_name=request.json['FirstName'],
+                last_name=request.json['LastName'],
+                gender=request.json['Gender'],
+                salary=request.json['Salary']
+            )
+            db.session.add(emp)
+            db.session.commit()
+            return make_response(jsonify({"Id": emp.id, 'FirstName': emp.first_name, 'LastName': emp.last_name, 'Gender': emp.gender, 'Salary': emp.salary, 'message': 'Employee added successfully'}), 201)
+        else:
+            return make_response(jsonify({"message": "Request must be JSON"}), 400)
+
+
+api.add_resource(GetEmployee, '/')
+api.add_resource(AddEmployee, '/add')
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
